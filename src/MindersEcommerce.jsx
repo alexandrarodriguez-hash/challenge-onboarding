@@ -17,7 +17,7 @@ const fmt = (n) => "$" + n.toFixed(2);
 // URL del backend Java (minders-braze-backend). Cambiar en producción
 // por la URL real desplegada, o inyectarla vía variable de entorno del
 // bundler que estés usando (Vite, CRA, Next, etc).
-const API_BASE = "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
 // Mapa EXACTO de la taxonomía: nombre de evento -> endpoint del backend.
 // Ni los nombres de evento ni las propiedades se modifican ni se arman
