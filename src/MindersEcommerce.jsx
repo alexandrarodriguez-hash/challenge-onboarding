@@ -88,7 +88,7 @@ export default function MindersEcommerce() {
    * se mandan ya con ese external_id.
    */
   async function loginDemo() {
-    const emailInput = prompt("Para probar el envío de correos en Braze, ingresa tu email:");
+    const emailInput = prompt("¡Únete al club y recibe un 15% de descuento! Déjanos tu email:");
     if (emailInput === null) return; // Si cancela el prompt, salimos
     if (!emailInput.trim()) {
       alert("Por favor ingresa un correo válido.");
