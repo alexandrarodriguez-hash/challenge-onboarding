@@ -24,6 +24,36 @@ const PRODUCTS = [
   { id: 8, tag: "Accesorios", title: "Lentes Solaro", price: 88, img: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=600&q=80", desc: "Lentes de sol con marco de acetato y lentes polarizadas con protección UV400." },
 ];
 
+const CONTENT_CARDS = [
+  {
+    id: "card_free_shipping",
+    type: "promo",
+    title: "¡Envío Gratis Activado!",
+    desc: "Disfruta de envío gratis automático para todas tus compras superiores a $150.",
+    badge: "Envío Gratis",
+    img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80",
+    productId: null
+  },
+  {
+    id: "card_reloj_lino",
+    type: "new_arrival",
+    title: "Reloj Lino: Minimalismo puro",
+    desc: "Diseño italiano clásico con correa de cuero texturizada y caja de acero cepillado. Edición limitada.",
+    badge: "Nuevo Ingreso",
+    img: "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=600&q=80",
+    productId: 7
+  },
+  {
+    id: "card_auriculares_halo",
+    type: "featured",
+    title: "Auriculares Halo: Sonido sin límites",
+    desc: "Experimenta la cancelación de ruido pasiva avanzada y almohadillas de memoria de alta fidelidad.",
+    badge: "Destacado",
+    img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
+    productId: 5
+  }
+];
+
 const fmt = (n) => "$" + n.toFixed(2);
 
 // URL del backend Java (minders-braze-backend). Cambiar en producción
@@ -166,6 +196,18 @@ export default function MindersEcommerce() {
   function bumpBadge() {
     setBadgeBump(true);
     setTimeout(() => setBadgeBump(false), 350);
+  }
+
+  function handleCardClick(card) {
+    if (card.productId) {
+      const prod = PRODUCTS.find((p) => p.id === card.productId);
+      if (prod) {
+        openProduct(prod);
+        showToast(`Content Card · Abriendo ${prod.title}`);
+      }
+    } else {
+      showToast(`Content Card · ${card.title}`);
+    }
   }
 
   // Hito 2: apertura del drawer de producto -> "Product Viewed"
@@ -377,6 +419,55 @@ export default function MindersEcommerce() {
                 >
                   Ver detalles
                 </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CONTENT CARDS */}
+      <section className="max-w-6xl mx-auto px-6 pb-20 border-t border-neutral-100 pt-16">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="font-serif font-medium text-2xl tracking-tight">Promociones y Novedades</h2>
+            <p className="text-neutral-500 text-sm mt-1">Tarjetas de contenido dinámico (Braze Content Cards)</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
+            <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+            Novedades sin leer
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {CONTENT_CARDS.map((card) => (
+            <div 
+              key={card.id}
+              onClick={() => handleCardClick(card)}
+              className="group cursor-pointer bg-neutral-50 border border-neutral-200 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-lg hover:bg-white hover:border-neutral-300"
+            >
+              <div className="aspect-[16/9] w-full bg-neutral-100 overflow-hidden relative">
+                <img 
+                  src={card.img} 
+                  alt={card.title} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <span className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-indigo-600 shadow-sm">
+                  {card.badge}
+                </span>
+                <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+              </div>
+              <div className="p-5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-serif font-medium text-base group-hover:text-indigo-600 transition-colors">
+                    {card.title}
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+                    {card.desc}
+                  </p>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-neutral-800">
+                  Ver detalles <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
               </div>
             </div>
           ))}
