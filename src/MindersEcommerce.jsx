@@ -1,5 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, User, ShoppingCart, X, Plus, Minus, Check, ArrowRight } from "lucide-react";
+import ampli from "./ampli/index.js";
+
+// ─── Ampli Initialization ──────────────────────────────────────────────────────
+// Ampli envía eventos directamente a Amplitude desde el browser.
+// El backend sigue siendo el canal para Braze (/api/events/*).
+// Ambos canales conviven: dual-track para máxima cobertura.
+ampli.load({
+  environment: import.meta.env.PROD ? "production" : "development",
+  client: {
+    apiKey: import.meta.env.VITE_AMPLITUDE_API_KEY,
+  },
+});
 
 const PRODUCTS = [
   { id: 1, tag: "Asientos", title: "Silla Fenda", price: 189, img: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=600&q=80", desc: "Silla de roble macizo con respaldo curvo y tapizado en lino crudo. Fabricación artesanal, ideal para comedor o escritorio." },
@@ -59,7 +71,9 @@ export default function MindersEcommerce() {
     if (!firedPageView.current) {
       firedPageView.current = true;
       // Hito 1: carga de la página -> "Page Viewed" { page_name }
+      // Dual-track: Braze (via backend) + Amplitude (via Ampli)
       trackAnalyticsEvent("Page Viewed", { page_name: "Home" });
+      ampli.pageViewed({ page_name: "Home" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -74,15 +88,28 @@ export default function MindersEcommerce() {
    * se mandan ya con ese external_id.
    */
   async function loginDemo() {
+    const emailInput = prompt("Para probar el envío de correos en Braze, ingresa tu email:");
+    if (emailInput === null) return; // Si cancela el prompt, salimos
+    if (!emailInput.trim()) {
+      alert("Por favor ingresa un correo válido.");
+      return;
+    }
+
     const externalId = "user-" + Math.floor(Math.random() * 100000);
     try {
       const res = await fetch(API_BASE + "/api/users/identify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ anonymousId: userId, externalId }),
+        body: JSON.stringify({ anonymousId: userId, externalId, email: emailInput.trim() }),
       });
       const data = await res.json();
       showToast("Identify · " + externalId + (data.sentToBraze ? "" : " · Braze no configurado"));
+      
+      // Identificamos al usuario en el SDK de Amplitude (vía Ampli)
+      ampli.identify(externalId, {
+        email: emailInput.trim(),
+        customer_type: "registered"
+      });
     } catch (err) {
       console.error("No se pudo contactar al backend:", err);
       showToast("Identify · backend no disponible");
@@ -149,7 +176,13 @@ export default function MindersEcommerce() {
     setDrawerMode("product");
     setJourneyStep(1);
     setDrawerOpen(true);
+    // Dual-track: Braze (via backend) + Amplitude (via Ampli)
     trackAnalyticsEvent("Product Viewed", {
+      product_id: String(p.id),
+      product_name: p.title,
+      price: p.price,
+    });
+    ampli.productViewed({
       product_id: String(p.id),
       product_name: p.title,
       price: p.price,
@@ -161,7 +194,12 @@ export default function MindersEcommerce() {
   function addToCart() {
     setCart((c) => ({ ...c, [currentProduct.id]: (c[currentProduct.id] || 0) + qty }));
     bumpBadge();
+    // Dual-track: Braze (via backend) + Amplitude (via Ampli)
     trackAnalyticsEvent("Product Added to Cart", {
+      product_id: String(currentProduct.id),
+      quantity: qty,
+    });
+    ampli.productAddedToCart({
       product_id: String(currentProduct.id),
       quantity: qty,
     });
@@ -200,6 +238,7 @@ export default function MindersEcommerce() {
     setJourneyStep(3);
 
     const orderId = "ORD-" + Date.now();
+    // Dual-track: Braze (via backend) + Amplitude (via Ampli)
     trackAnalyticsEvent("Order Completed", {
       order_id: orderId,
       revenue: total,
@@ -211,6 +250,7 @@ export default function MindersEcommerce() {
         quantity: l.qty,
       })),
     });
+    ampli.orderCompleted({ order_id: orderId, revenue: total });
 
     setCart({});
     setTimeout(() => setDrawerOpen(false), 2400);
