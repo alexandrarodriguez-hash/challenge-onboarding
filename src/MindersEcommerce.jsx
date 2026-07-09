@@ -437,7 +437,7 @@ export default function MindersEcommerce() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="font-serif font-medium text-2xl tracking-tight">Promociones y Novedades</h2>
-            <p className="text-neutral-500 text-sm mt-1">Tarjetas de contenido dinámico (Braze Content Cards)</p>
+        
           </div>
           
         </div>
