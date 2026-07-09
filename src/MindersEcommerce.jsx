@@ -356,46 +356,51 @@ export default function MindersEcommerce() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative mx-5 mt-5 rounded-3xl overflow-hidden bg-neutral-900 min-h-[420px] flex items-center">
-        <img
-          src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1600&q=80"
-          alt="Interior cálido y minimalista"
-          className="absolute inset-0 w-full h-full object-cover opacity-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-neutral-900/90 via-neutral-900/40 to-transparent" />
-        <div className="relative z-10 max-w-6xl w-full mx-auto px-10 py-16">
-          <div className="flex items-center gap-2 text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            Colección de invierno
+ {/* HERO / CARROUSEL PROMOCIONAL */}
+      <section className="relative mx-5 mt-5 rounded-3xl overflow-hidden bg-neutral-900 min-h-[440px] flex items-center">
+        {/* Diapositiva 1: Reloj Lino */}
+        <div className="absolute inset-0 transition-opacity duration-700 ease-in-out opacity-100">
+          <img
+            src="https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1600&q=80"
+            alt="Reloj Lino"
+            className="absolute inset-0 w-full h-full object-cover opacity-40 scale-105 transition-transform duration-1000"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-neutral-900/90 via-neutral-900/50 to-transparent" />
+          <div className="relative z-10 max-w-6xl w-full mx-auto px-10 py-16 flex flex-col justify-center h-full">
+            <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-3">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              Edición Limitada · Nuevo Ingreso
+            </div>
+            <h1 className="font-serif font-medium text-4xl md:text-5xl leading-tight text-white max-w-xl tracking-tight">
+              Diseño italiano clásico con la mayor precisión
+            </h1>
+            <p className="mt-3 text-neutral-300 max-w-md text-base leading-relaxed">
+              Consigue el Reloj Lino con caja de acero cepillado y correa de cuero genuino.
+            </p>
+            <div className="mt-8 flex items-center gap-4">
+              <button
+                onClick={() => openProduct(PRODUCTS.find(p => p.id === 7))}
+                className="inline-flex items-center gap-2 px-7 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-full transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/30"
+              >
+                Comprar por $210.00
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <h1 className="font-serif font-medium text-4xl md:text-5xl leading-tight text-white max-w-xl tracking-tight">
-            Objetos hechos para acompañar tu rutina, no para interrumpirla
-          </h1>
-          <p className="mt-4 text-neutral-200 max-w-md text-base leading-relaxed">
-            Piezas simples, bien construidas, para el espacio en el que realmente vives.
-          </p>
-          <a
-            href="#gallery"
-            className="inline-flex items-center gap-2 mt-8 px-7 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-full transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/30"
-          >
-            Comprar ahora
-            <ArrowRight className="w-4 h-4" />
-          </a>
+        </div>
+
+        {/* Barra superior comercial de beneficios rápida (Announcement Ticker) */}
+        <div className="absolute top-0 inset-x-0 bg-indigo-600/90 backdrop-blur text-white text-xs py-2 px-6 flex justify-between items-center z-20 font-medium tracking-wide">
+          <span>⚡ 15% de descuento en tu primera compra con el cupón: <strong>MINDERS15</strong></span>
+          <span className="hidden sm:inline">🚚 Envío gratis a todo el país en pedidos mayores a $150</span>
         </div>
       </section>
 
-      {/* GALLERY */}
+{/* GALLERY */}
       <section id="gallery" className="max-w-6xl mx-auto px-6 py-20">
-        <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
-          <div>
-            <h2 className="font-serif font-medium text-3xl tracking-tight">Destacados de la temporada</h2>
-            <p className="text-neutral-500 text-sm mt-1.5">Selección curada · actualizada cada semana</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-            Cada tarjeta dispara <strong className="text-neutral-700">Product Viewed</strong> al abrir el detalle
-          </div>
+        <div className="mb-9">
+          <h2 className="font-serif font-medium text-3xl tracking-tight">Destacados de la temporada</h2>
+          <p className="text-neutral-500 text-sm mt-1.5">Selección curada · actualizada cada semana</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -434,10 +439,7 @@ export default function MindersEcommerce() {
             <h2 className="font-serif font-medium text-2xl tracking-tight">Promociones y Novedades</h2>
             <p className="text-neutral-500 text-sm mt-1">Tarjetas de contenido dinámico (Braze Content Cards)</p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
-            <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-            Novedades sin leer
-          </div>
+          
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -456,7 +458,7 @@ export default function MindersEcommerce() {
                 <span className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-indigo-600 shadow-sm">
                   {card.badge}
                 </span>
-                <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+                
               </div>
               <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
