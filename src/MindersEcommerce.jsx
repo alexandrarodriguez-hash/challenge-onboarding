@@ -3,9 +3,6 @@ import { Search, User, ShoppingCart, X, Plus, Minus, Check, ArrowRight } from "l
 import ampli from "./ampli/index.js";
 
 // ─── Ampli Initialization ──────────────────────────────────────────────────────
-// Ampli envía eventos directamente a Amplitude desde el browser.
-// El backend sigue siendo el canal para Braze (/api/events/*).
-// Ambos canales conviven: dual-track para máxima cobertura.
 ampli.load({
   environment: import.meta.env.PROD ? "production" : "development",
   client: {
@@ -55,15 +52,8 @@ const CONTENT_CARDS = [
 ];
 
 const fmt = (n) => "$" + n.toFixed(2);
-
-// URL del backend Java (minders-braze-backend). Cambiar en producción
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
-// Mapa EXACTO de la taxonomía: nombre de evento -> endpoint del backend.
-// Ni los nombres de evento ni las propiedades se modifican ni se arman
-// concatenando texto (ej. nada de "Product Viewed · " + nombre); el
-// nombre del evento viaja tal cual, y las propiedades van en su propio
-// objeto, tal como las define la taxonomía de Amplitude.
 const EVENT_ENDPOINTS = {
   "Page Viewed": "/api/events/page-viewed",
   "Product Viewed": "/api/events/product-viewed",
@@ -74,7 +64,7 @@ const EVENT_ENDPOINTS = {
 export default function MindersEcommerce() {
   const [cart, setCart] = useState({});
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState("product"); // product | cart | confirm
+  const [drawerMode, setDrawerMode] = useState("product"); 
   const [journeyStep, setJourneyStep] = useState(0);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [qty, setQty] = useState(1);
@@ -84,40 +74,28 @@ export default function MindersEcommerce() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
 
-  // Id anónimo del visitante, persistente durante la sesión del tab.
-  // En una app real conviene guardarlo en localStorage para que
-  // sobreviva a recargas. Al hacer login, este id se REEMPLAZA por el
-  // external_id real del usuario (ver loginDemo/identifyUser más abajo).
   const [userId, setUserId] = useState(
     () => "anon-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random())
   );
 
-  // "guest" mientras no haya login; pasa a "registered" tras identificar
-  // al usuario en Braze. Alimenta la User Property customer_type que se
-  // manda en el evento Order Completed.
   const [customerType, setCustomerType] = useState("guest");
 
   useEffect(() => {
     if (!firedPageView.current) {
       firedPageView.current = true;
-      // Hito 1: carga de la página -> "Page Viewed" { page_name }
-      // Dual-track: Braze (via backend) + Amplitude (via Ampli)
       trackAnalyticsEvent("Page Viewed", { page_name: "Home" });
       ampli.pageViewed({ page_name: "Home" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleLoginSubmit(e) {
-    e.preventDefault(); // Evita que la página recargue
+    e.preventDefault();
     if (!loginEmail.trim()) {
       alert("Por favor ingresa un correo válido.");
       return;
     }
     
-    // Ocultamos el modal
     setShowLoginModal(false);
-
     const emailInput = loginEmail.trim();
     const externalId = "user-" + Math.floor(Math.random() * 100000);
     
@@ -141,7 +119,7 @@ export default function MindersEcommerce() {
     
     setUserId(externalId);
     setCustomerType("registered");
-    setLoginEmail(""); // Limpiamos el input para la próxima
+    setLoginEmail("");
   }
 
   function showToast(label) {
@@ -150,24 +128,6 @@ export default function MindersEcommerce() {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000);
   }
 
-  function showToast(label) {
-    const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, name: label }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000);
-  }
-
-  /**
-   * Función centralizada de tracking. Es el ÚNICO punto del front que
-   * habla con el backend de analítica: toma un eventName que debe existir
-   * tal cual en la taxonomía (ver EVENT_ENDPOINTS) y sus properties ya
-   * armadas con los nombres exactos que espera cada evento, y hace el
-   * POST correspondiente. El backend a su vez lo traduce y lo envía a
-   * Braze (/users/track).
-   *
-   * Nunca rompe el flujo del usuario: si el backend no responde o Braze
-   * no está configurado, solo se avisa en el toast y la navegación/compra
-   * sigue funcionando igual.
-   */
   async function trackAnalyticsEvent(eventName, properties = {}) {
     const path = EVENT_ENDPOINTS[eventName];
     if (!path) {
@@ -212,15 +172,12 @@ export default function MindersEcommerce() {
     }
   }
 
-  // Hito 2: apertura del drawer de producto -> "Product Viewed"
-  // { product_id, product_name, price }
   function openProduct(p) {
     setCurrentProduct(p);
     setQty(1);
     setDrawerMode("product");
     setJourneyStep(1);
     setDrawerOpen(true);
-    // Dual-track: Braze (via backend) + Amplitude (via Ampli)
     trackAnalyticsEvent("Product Viewed", {
       product_id: String(p.id),
       product_name: p.title,
@@ -233,12 +190,9 @@ export default function MindersEcommerce() {
     });
   }
 
-  // Hito 3: clic en "Agregar al carrito" -> "Product Added to Cart"
-  // { product_id, quantity }
   function addToCart() {
     setCart((c) => ({ ...c, [currentProduct.id]: (c[currentProduct.id] || 0) + qty }));
     bumpBadge();
-    // Dual-track: Braze (via backend) + Amplitude (via Ampli)
     trackAnalyticsEvent("Product Added to Cart", {
       product_id: String(currentProduct.id),
       quantity: qty,
@@ -253,7 +207,7 @@ export default function MindersEcommerce() {
 
   function openCart() {
     const hasItems = Object.values(cart).some((q) => q > 0);
-    setDrawerMode("cart");
+    setDrawerMode(hasItems ? "cart" : "product");
     setJourneyStep(hasItems ? 2 : 1);
     setDrawerOpen(true);
   }
@@ -271,22 +225,15 @@ export default function MindersEcommerce() {
   const shipping = subtotal > 150 || subtotal === 0 ? 0 : 9.9;
   const total = subtotal + shipping;
 
-  // Hito 4: confirmación de la compra -> "Order Completed"
-  // { order_id, revenue }
-  // customerType e items no son Event Properties de Amplitude: el backend
-  // los usa aparte para actualizar las User Properties (lifetime_value,
-  // customer_type, first_purchase_date) y para dar granularidad de
-  // producto a Braze. Ver EventTrackingService en el backend.
   function completeOrder() {
     setDrawerMode("confirm");
     setJourneyStep(3);
 
     const orderId = "ORD-" + Date.now();
-    // Dual-track: Braze (via backend) + Amplitude (via Ampli)
     trackAnalyticsEvent("Order Completed", {
       order_id: orderId,
       revenue: total,
-      customerType, // "guest" o "registered", según haya login o no
+      customerType, 
       items: cartLines.map((l) => ({
         productId: String(l.product.id),
         productName: l.product.title,
@@ -324,7 +271,6 @@ export default function MindersEcommerce() {
                 onClick={() => setShowLoginModal(true)}
                 className="px-3.5 h-10 flex items-center gap-2 rounded-full hover:bg-neutral-100 hover:-translate-y-0.5 transition-all text-sm font-medium"
                 aria-label="Iniciar sesión"
-                title="Simula un login: funde tu historial anónimo con un external_id en Braze"
               >
                 <User className="w-5 h-5" />
                 <span className="hidden sm:inline">Iniciar sesión</span>
@@ -356,9 +302,8 @@ export default function MindersEcommerce() {
         </div>
       </header>
 
- {/* HERO / CARROUSEL PROMOCIONAL */}
+      {/* HERO / CARROUSEL PROMOCIONAL */}
       <section className="relative mx-5 mt-5 rounded-3xl overflow-hidden bg-neutral-900 min-h-[440px] flex items-center">
-        {/* Diapositiva 1: Reloj Lino */}
         <div className="absolute inset-0 transition-opacity duration-700 ease-in-out opacity-100">
           <img
             src="https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1600&q=80"
@@ -389,14 +334,13 @@ export default function MindersEcommerce() {
           </div>
         </div>
 
-        {/* Barra superior comercial de beneficios rápida (Announcement Ticker) */}
         <div className="absolute top-0 inset-x-0 bg-indigo-600/90 backdrop-blur text-white text-xs py-2 px-6 flex justify-between items-center z-20 font-medium tracking-wide">
           <span>⚡ 15% de descuento en tu primera compra con el cupón: <strong>MINDERS15</strong></span>
           <span className="hidden sm:inline">🚚 Envío gratis a todo el país en pedidos mayores a $150</span>
         </div>
       </section>
 
-{/* GALLERY */}
+      {/* GALLERY */}
       <section id="gallery" className="max-w-6xl mx-auto px-6 py-20">
         <div className="mb-9">
           <h2 className="font-serif font-medium text-3xl tracking-tight">Destacados de la temporada</h2>
@@ -437,9 +381,7 @@ export default function MindersEcommerce() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="font-serif font-medium text-2xl tracking-tight">Promociones y Novedades</h2>
-        
           </div>
-          
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -458,7 +400,6 @@ export default function MindersEcommerce() {
                 <span className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-indigo-600 shadow-sm">
                   {card.badge}
                 </span>
-                
               </div>
               <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
@@ -500,6 +441,7 @@ export default function MindersEcommerce() {
           <div className="font-serif font-medium text-lg">
             {drawerMode === "product" && "Detalle del producto"}
             {drawerMode === "cart" && "Tu carrito"}
+            {drawerMode === "checkout" && "Información de Pago y Envío"}
             {drawerMode === "confirm" && "Pedido confirmado"}
           </div>
           <button
@@ -610,14 +552,59 @@ export default function MindersEcommerce() {
                   </div>
 
                   <button
-                    onClick={completeOrder}
+                    onClick={() => setDrawerMode("checkout")}
                     className="w-full mt-7 py-4 bg-neutral-900 hover:bg-indigo-600 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg hover:shadow-indigo-600/30"
                   >
                     <Check className="w-4 h-4" />
-                    Finalizar compra
+                    Proceder al Checkout
                   </button>
                 </>
               )}
+            </div>
+          )}
+
+          {drawerMode === "checkout" && (
+            <div className="flex flex-col gap-5">
+              <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+                <span className="text-xs uppercase tracking-wider font-bold text-neutral-400">Resumen de tu pedido</span>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-sm text-neutral-600">Total a pagar:</span>
+                  <span className="text-lg font-bold text-indigo-600">{fmt(total)}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold uppercase text-neutral-500 tracking-wide">Datos de Envío</label>
+                <input 
+                  type="text" 
+                  placeholder="Nombre Completo" 
+                  className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
+                  required
+                />
+                <input 
+                  type="text" 
+                  placeholder="Dirección de entrega" 
+                  className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 mt-2">
+                <label className="text-xs font-bold uppercase text-neutral-500 tracking-wide">Tarjeta de Crédito / Débito (Demo)</label>
+                <input 
+                  type="text" 
+                  placeholder="0000 0000 0000 0000" 
+                  className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
+                />
+              </div>
+
+              <button
+                onClick={completeOrder}
+                className="w-full mt-4 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/30"
+              >
+                <Check className="w-4 h-4" />
+                Confirmar y Pagar {fmt(total)}
+              </button>
             </div>
           )}
 
@@ -637,15 +624,13 @@ export default function MindersEcommerce() {
         </div>
       </aside>
       
-      {/* LOGIN MODAL (Reemplaza al prompt) */}
+      {/* LOGIN MODAL */}
       {showLoginModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          {/* Fondo oscuro desenfocado */}
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity cursor-pointer"
             onClick={() => setShowLoginModal(false)}
           />
-          {/* Tarjeta del Modal */}
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 overflow-hidden">
             <button 
               onClick={() => setShowLoginModal(false)}
