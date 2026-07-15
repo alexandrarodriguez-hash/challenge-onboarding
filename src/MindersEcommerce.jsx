@@ -97,7 +97,7 @@ export default function MindersEcommerce() {
     
     setShowLoginModal(false);
     const emailInput = loginEmail.trim();
-    const externalId = "user-" + Math.floor(Math.random() * 100000);
+    const externalId = emailInput;
     
     try {
       const res = await fetch(API_BASE + "/api/users/identify", {
