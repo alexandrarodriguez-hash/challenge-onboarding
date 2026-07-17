@@ -129,6 +129,28 @@ export function orderCompleted(properties) {
   });
 }
 
+/**
+ * Checkout Started
+ * Categoría: Conversion
+ * Se dispara cuando el usuario hace clic en "Proceder al Checkout" desde el carrito.
+ * Es la métrica principal del experimento shipping-cost-display.
+ *
+ * @param {Object} properties
+ * @param {number} properties.subtotal       - Subtotal del carrito sin envío.
+ * @param {number} properties.shipping_cost  - Costo de envío estimado.
+ * @param {number} properties.total          - Total incluyendo envío.
+ * @param {string} properties.experiment_variant - Variante del experimento (control/treatment).
+ */
+export function checkoutStarted(properties) {
+  if (!_initialized) return;
+  amplitude.track("Checkout Started", {
+    subtotal:             properties.subtotal,
+    shipping_cost:        properties.shipping_cost,
+    total:                properties.total,
+    experiment_variant:   properties.experiment_variant,
+  });
+}
+
 // ─── Export default (estilo Ampli oficial) ────────────────────────────────────
-const ampli = { load, identify, pageViewed, productViewed, productAddedToCart, orderCompleted };
+const ampli = { load, identify, pageViewed, productViewed, productAddedToCart, orderCompleted, checkoutStarted };
 export default ampli;

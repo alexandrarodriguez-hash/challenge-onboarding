@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, User, ShoppingCart, X, Plus, Minus, Check, ArrowRight } from "lucide-react";
+import { Search, User, ShoppingCart, X, Plus, Minus, Check, ArrowRight, Truck } from "lucide-react";
 import ampli from "./ampli/index.js";
+import { fetchVariant, VARIANT_TREATMENT } from "./experiment.js";
 
 // ─── Ampli Initialization ──────────────────────────────────────────────────────
 ampli.load({
@@ -77,6 +78,14 @@ export default function MindersEcommerce() {
   const [userId, setUserId] = useState(
     () => "anon-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random())
   );
+
+  // ─── Amplitude Experiment ───────────────────────────────────────────────────
+  // Variantes: "control" (baseline) vs "treatment" (muestra costo de envío estimado)
+  const [experimentVariant, setExperimentVariant] = useState("control");
+
+  useEffect(() => {
+    fetchVariant().then(setExperimentVariant);
+  }, []);
 
   const [customerType, setCustomerType] = useState("guest");
 
@@ -245,6 +254,17 @@ export default function MindersEcommerce() {
 
     setCart({});
     setTimeout(() => setDrawerOpen(false), 2400);
+  }
+
+  // Checkpoint del experimento: Add to Cart → Checkout
+  function handleProceedToCheckout() {
+    ampli.checkoutStarted({
+      subtotal,
+      shipping_cost: shipping,
+      total,
+      experiment_variant: experimentVariant,
+    });
+    setDrawerMode("checkout");
   }
 
   return (
@@ -541,10 +561,41 @@ export default function MindersEcommerce() {
                       <span>Subtotal</span>
                       <span>{fmt(subtotal)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-neutral-500 py-1">
-                      <span>Envío</span>
-                      <span>{shipping === 0 ? "Gratis" : fmt(shipping)}</span>
-                    </div>
+
+                    {/* ── TREATMENT: muestra costo de envío estimado de forma prominente ── */}
+                    {experimentVariant === VARIANT_TREATMENT ? (
+                      <div className="my-3">
+                        {shipping === 0 ? (
+                          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+                            <Truck className="w-4 h-4 text-green-600 shrink-0" />
+                            <div>
+                              <span className="text-sm font-bold text-green-700">Envío Gratis incluido 🎉</span>
+                              <p className="text-xs text-green-600 mt-0.5">Tu pedido supera $150 — el envío es gratis.</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5">
+                            <Truck className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-bold text-indigo-700">Envío estimado</span>
+                                <span className="text-sm font-bold text-indigo-700">{fmt(shipping)}</span>
+                              </div>
+                              <p className="text-xs text-indigo-500 mt-0.5">
+                                Agrega ${fmt(150 - subtotal)} más y obtén envío gratis.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // ── CONTROL: muestra envío en línea simple (baseline) ──
+                      <div className="flex justify-between text-sm text-neutral-500 py-1">
+                        <span>Envío</span>
+                        <span>{shipping === 0 ? "Gratis" : fmt(shipping)}</span>
+                      </div>
+                    )}
+
                     <div className="flex justify-between text-base font-bold pt-2.5 mt-1.5 border-t border-neutral-200">
                       <span>Total</span>
                       <span>{fmt(total)}</span>
@@ -552,7 +603,7 @@ export default function MindersEcommerce() {
                   </div>
 
                   <button
-                    onClick={() => setDrawerMode("checkout")}
+                    onClick={handleProceedToCheckout}
                     className="w-full mt-7 py-4 bg-neutral-900 hover:bg-indigo-600 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg hover:shadow-indigo-600/30"
                   >
                     <Check className="w-4 h-4" />
