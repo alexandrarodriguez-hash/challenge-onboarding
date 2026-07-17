@@ -55,6 +55,41 @@ const CONTENT_CARDS = [
 const fmt = (n) => "$" + n.toFixed(2);
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
+// ─── Formulario de pago simulado (sin gateway real) ────────────────────────────
+const CARD_BRANDS = [
+  { id: "visa", label: "Visa" },
+  { id: "mastercard", label: "Mastercard" },
+];
+
+const formatCardNumber = (digits) => digits.match(/.{1,4}/g)?.join(" ") ?? "";
+
+// Devuelve true/false una vez hay suficientes dígitos para decidir, o null si aún es ambiguo.
+function cardNumberMatchesBrand(digits, brand) {
+  if (!brand || digits.length === 0) return null;
+  if (brand === "visa") return digits[0] === "4";
+  if (brand === "mastercard") {
+    const n2 = Number(digits.slice(0, 2));
+    if (n2 >= 51 && n2 <= 55) return true;
+    if (digits.length < 4) return null;
+    const n4 = Number(digits.slice(0, 4));
+    return n4 >= 2221 && n4 <= 2720;
+  }
+  return false;
+}
+
+function isExpiryValid(month, year) {
+  if (!/^\d{2}$/.test(month) || !/^\d{4}$/.test(year)) return false;
+  const m = Number(month);
+  const y = Number(year);
+  if (m < 1 || m > 12) return false;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if (y < currentYear) return false;
+  if (y === currentYear && m < currentMonth) return false;
+  return true;
+}
+
 const EVENT_ENDPOINTS = {
   "Page Viewed": "/api/events/page-viewed",
   "Product Viewed": "/api/events/product-viewed",
@@ -74,6 +109,13 @@ export default function MindersEcommerce() {
   const firedPageView = useRef(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
+
+  // ─── Formulario de pago simulado ────────────────────────────────────────────
+  const [cardBrand, setCardBrand] = useState(null);
+  const [cardNumber, setCardNumber] = useState(""); // solo dígitos, sin espacios
+  const [cardMonth, setCardMonth] = useState("");
+  const [cardYear, setCardYear] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
 
   const [userId, setUserId] = useState(
     () => "anon-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random())
@@ -233,6 +275,24 @@ export default function MindersEcommerce() {
   const subtotal = cartLines.reduce((a, l) => a + l.product.price * l.qty, 0);
   const shipping = subtotal > 150 || subtotal === 0 ? 0 : 9.9;
   const total = subtotal + shipping;
+
+  const cardNumberMatch = cardNumberMatchesBrand(cardNumber, cardBrand);
+  const isCardNumberValid = cardNumber.length === 16 && cardNumberMatch === true;
+  const isExpiryOk = isExpiryValid(cardMonth, cardYear);
+  const isCvvValid = /^\d{3}$/.test(cardCvv);
+  const isPaymentValid = Boolean(cardBrand) && isCardNumberValid && isExpiryOk && isCvvValid;
+
+  let paymentError = null;
+  if (cardBrand && cardNumber && cardNumberMatch === false) {
+    const brandLabel = cardBrand === "visa" ? "Visa" : "Mastercard";
+    paymentError = `El número ingresado no corresponde a ${brandLabel}.`;
+  } else if (cardBrand && cardNumber.length === 16 && !isCardNumberValid) {
+    paymentError = "El número de tarjeta no es válido.";
+  } else if ((cardMonth || cardYear) && cardMonth.length === 2 && cardYear.length === 4 && !isExpiryOk) {
+    paymentError = "La tarjeta está vencida o la fecha no es válida.";
+  } else if (cardCvv && !isCvvValid) {
+    paymentError = "El CVV debe tener exactamente 3 dígitos.";
+  }
 
   function completeOrder() {
     setDrawerMode("confirm");
@@ -642,16 +702,77 @@ export default function MindersEcommerce() {
 
               <div className="flex flex-col gap-3 mt-2">
                 <label className="text-xs font-bold uppercase text-neutral-500 tracking-wide">Tarjeta de Crédito / Débito (Demo)</label>
-                <input 
-                  type="text" 
-                  placeholder="0000 0000 0000 0000" 
+
+                <div className="flex gap-3">
+                  {CARD_BRANDS.map((brand) => (
+                    <button
+                      key={brand.id}
+                      type="button"
+                      onClick={() => setCardBrand(brand.id)}
+                      className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
+                        cardBrand === brand.id
+                          ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                          : "border-neutral-200 text-neutral-500 hover:bg-neutral-100"
+                      }`}
+                    >
+                      {brand.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0000 0000 0000 0000"
+                  value={formatCardNumber(cardNumber)}
+                  onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
+                  maxLength={19}
                   className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
                 />
+
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="MM"
+                    value={cardMonth}
+                    onChange={(e) => setCardMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                    maxLength={2}
+                    className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="AAAA"
+                    value={cardYear}
+                    onChange={(e) => setCardYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    maxLength={4}
+                    className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="CVV"
+                    value={cardCvv}
+                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                    maxLength={3}
+                    className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 focus:border-indigo-600 focus:bg-white focus:outline-none transition-colors text-sm"
+                  />
+                </div>
+
+                {paymentError && (
+                  <p className="text-xs font-medium text-red-600">{paymentError}</p>
+                )}
               </div>
 
               <button
                 onClick={completeOrder}
-                className="w-full mt-4 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/30"
+                disabled={!isPaymentValid}
+                className={`w-full mt-4 py-4 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg ${
+                  isPaymentValid
+                    ? "bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 shadow-indigo-600/30"
+                    : "bg-neutral-300 cursor-not-allowed shadow-none"
+                }`}
               >
                 <Check className="w-4 h-4" />
                 Confirmar y Pagar {fmt(total)}
