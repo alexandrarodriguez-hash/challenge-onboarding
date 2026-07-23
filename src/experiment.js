@@ -2,7 +2,7 @@
  * Amplitude Experiment - Singleton client
  *
  * Deployment: amplistore-experiment
- * Flag key:   shipping-cost-display
+ * Flag key:   cart-shipping-transparency-v1
  * Variants:
  *   - control   → no muestra nada adicional (baseline)
  *   - treatment → muestra costo de envío estimado prominentemente en el carrito
@@ -16,7 +16,7 @@
 import { Experiment } from "@amplitude/experiment-js-client";
 
 // ─── FLAG KEY del experimento ─────────────────────────────────────────────────
-export const EXPERIMENT_FLAG_KEY = "shipping-cost-display";
+export const EXPERIMENT_FLAG_KEY = "cart-shipping-transparency-v1";
 
 // ─── Variantes posibles ───────────────────────────────────────────────────────
 export const VARIANT_CONTROL   = "control";

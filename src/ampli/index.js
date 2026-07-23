@@ -133,7 +133,7 @@ export function orderCompleted(properties) {
  * Checkout Started
  * Categoría: Conversion
  * Se dispara cuando el usuario hace clic en "Proceder al Checkout" desde el carrito.
- * Es la métrica principal del experimento shipping-cost-display.
+ * Es la métrica principal del experimento cart-shipping-transparency-v1.
  *
  * @param {Object} properties
  * @param {number} properties.subtotal       - Subtotal del carrito sin envío.
