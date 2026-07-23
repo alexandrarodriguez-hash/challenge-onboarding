@@ -13,6 +13,7 @@
     "@amplitude/ampli": "^1.36.3",
     "@amplitude/analytics-browser": "^2.44.4",
     "@amplitude/experiment-js-client": "^1.12.1",
+    "@braze/web-sdk": "^6.10.1",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

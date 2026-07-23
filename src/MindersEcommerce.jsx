@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, User, ShoppingCart, X, Plus, Minus, Check, ArrowRight, Truck } from "lucide-react";
 import ampli from "./ampli/index.js";
 import { fetchVariant, VARIANT_TREATMENT } from "./experiment.js";
+import { changeUserExternalId, subscribeToContentCards, logCardClick } from "./braze.js";
 
 // ─── Ampli Initialization ──────────────────────────────────────────────────────
 ampli.load({
@@ -129,6 +130,26 @@ export default function MindersEcommerce() {
     fetchVariant().then(setExperimentVariant);
   }, []);
 
+  // ─── Braze Content Cards ─────────────────────────────────────────────────
+  const [brazeCards, setBrazeCards] = useState(null);
+
+  useEffect(() => {
+    subscribeToContentCards((contentCards) => {
+      const cards = (contentCards?.cards ?? []).map((card) => ({
+        id: card.id,
+        type: "braze",
+        title: card.title,
+        desc: card.description,
+        badge: card.extras?.badge || "Novedades",
+        img: card.imageUrl,
+        productId: null,
+        ...(card.url ? { url: card.url } : {}),
+        _brazeCard: card,
+      }));
+      setBrazeCards(cards);
+    });
+  }, []);
+
   const [customerType, setCustomerType] = useState("guest");
 
   useEffect(() => {
@@ -163,6 +184,7 @@ export default function MindersEcommerce() {
         email: emailInput,
         customer_type: "registered"
       });
+      changeUserExternalId(externalId);
     } catch (err) {
       console.error("No se pudo contactar al backend:", err);
       showToast("Identify · backend no disponible");
@@ -212,6 +234,9 @@ export default function MindersEcommerce() {
   }
 
   function handleCardClick(card) {
+    if (card._brazeCard) {
+      logCardClick(card._brazeCard);
+    }
     if (card.productId) {
       const prod = PRODUCTS.find((p) => p.id === card.productId);
       if (prod) {
@@ -281,6 +306,8 @@ export default function MindersEcommerce() {
   const isExpiryOk = isExpiryValid(cardMonth, cardYear);
   const isCvvValid = /^\d{3}$/.test(cardCvv);
   const isPaymentValid = Boolean(cardBrand) && isCardNumberValid && isExpiryOk && isCvvValid;
+
+  const cardsToRender = (brazeCards && brazeCards.length > 0) ? brazeCards : CONTENT_CARDS;
 
   let paymentError = null;
   if (cardBrand && cardNumber && cardNumberMatch === false) {
@@ -465,7 +492,7 @@ export default function MindersEcommerce() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {CONTENT_CARDS.map((card) => (
+          {cardsToRender.map((card) => (
             <div 
               key={card.id}
               onClick={() => handleCardClick(card)}
